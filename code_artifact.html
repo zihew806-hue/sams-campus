@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>山姆校园分装 & 拼车看板</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      background-color: #f8fafc;
+      color: #0f172a;
+      -webkit-tap-highlight-color: transparent;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-200 shadow-sm">
+    <div class="max-w-4xl mx-auto px-4 py-2.5 flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-sm shadow-sm">
+          S
+        </div>
+        <div>
+          <div class="flex items-center gap-1.5">
+            <h1 class="font-bold text-sm sm:text-base text-slate-900" id="header-title">山姆校园分装拼车</h1>
+            <span id="role-tag" class="px-1.5 py-0.2 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+              同学端
+            </span>
+          </div>
+          <p class="text-[11px] text-slate-400">每日16:00截单 · 宿舍门口自提</p>
+        </div>
+      </div>
+
+      <!-- Quick Switch / Cloud Sync Indicator -->
+      <div class="flex items-center gap-2">
+        <span class="inline-flex items-center gap-1 text-[11px] text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full border border-emerald-100">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+          微信直连中
+        </span>
+        <button id="toggle-role-btn" type="button" class="text-xs text-blue-600 font-medium hover:underline bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200">
+          切换后台监控 🔑
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- URL Mode Notice Banner -->
+  <div id="url-mode-banner" class="bg-indigo-50 border-b border-indigo-100 px-4 py-2 text-xs text-indigo-900">
+    <div class="max-w-4xl mx-auto flex flex-wrap items-center justify-between gap-2">
+      <span id="url-mode-desc">👉 当前处于【同学选购链接】模式，适合直接发微信群/私聊。</span>
+      <button id="copy-current-link-btn" type="button" class="font-semibold text-indigo-600 underline hover:text-indigo-800">
+        复制本链接发微信
+      </button>
+    </div>
+  </div>
+
+  <main class="flex-1 max-w-4xl w-full mx-auto px-4 py-4 space-y-5">
+
+    <!-- Free Shipping Progress -->
+    <section class="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-4 text-white shadow-sm space-y-2">
+      <div class="flex items-center justify-between text-xs">
+        <span class="font-medium bg-white/20 px-2 py-0.5 rounded-full">🚗 极速达免邮凑单池（满 ¥99 免 ¥15 运费）</span>
+        <span id="free-shipping-text" class="font-bold text-amber-200">已凑 ¥148.6 / ¥99.0</span>
+      </div>
+      <div class="w-full h-2.5 bg-blue-950/40 rounded-full overflow-hidden">
+        <div id="free-shipping-bar" class="h-full bg-emerald-400 rounded-full transition-all duration-500" style="width: 100%"></div>
+      </div>
+      <div class="flex items-center justify-between text-[11px] text-blue-100 pt-1">
+        <span>📍 自提点：宿舍1号楼架空层</span>
+        <span id="banner-order-count">当前已有 5 位同学上车</span>
+      </div>
+    </section>
+
+    <!-- ==================== STUDENT VIEW ==================== -->
+    <div id="student-view" class="space-y-4">
+      <div class="flex items-center justify-between">
+        <h2 class="font-bold text-sm text-slate-800">🍰 今日发车分装单品（满整盒即刻采购）</h2>
+        <span class="text-xs text-slate-400">差1-2份群主自留成团</span>
+      </div>
+
+      <!-- Products Grid -->
+      <div id="product-cards-container" class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+        <!-- JS rendered -->
+      </div>
+
+      <!-- Student Order Form -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm space-y-3.5">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
+          <h3 class="font-bold text-sm text-slate-900">📝 登记我的拼单（免注册）</h3>
+          <span class="text-xs text-blue-600" id="cart-summary-badge">已选 0 份</span>
+        </div>
+
+        <div id="cart-items-preview" class="space-y-1.5 text-xs">
+          <!-- JS Cart items -->
+        </div>
+
+        <div class="grid grid-cols-2 gap-2.5">
+          <div>
+            <label class="block text-xs font-medium text-slate-700 mb-1">群内昵称 <span class="text-rose-500">*</span></label>
+            <input id="input-nickname" type="text" placeholder="如：小陈" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-700 mb-1">手机尾号(取件码) <span class="text-rose-500">*</span></label>
+            <input id="input-phone" type="text" maxlength="4" placeholder="4位尾号如 3902" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2.5">
+          <div>
+            <label class="block text-xs font-medium text-slate-700 mb-1">宿舍园区</label>
+            <select id="input-dorm" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 bg-white">
+              <option value="北苑1号楼">北苑1号楼</option>
+              <option value="北苑2号楼">北苑2号楼</option>
+              <option value="南苑3号楼">南苑3号楼</option>
+              <option value="南苑4号楼">南苑4号楼</option>
+              <option value="东区研究生公寓">东区研究生公寓</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-700 mb-1">备注说明</label>
+            <input id="input-note" type="text" placeholder="如：18点下课来拿" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200" />
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between pt-2">
+          <div>
+            <span class="text-xs text-slate-400">应付合计：</span>
+            <span id="cart-total-price" class="text-base font-bold text-blue-600">¥0.0</span>
+          </div>
+          <button id="btn-submit-order" type="button" class="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-semibold shadow-sm transition-all">
+            🚀 提交并生成微信接龙口令
+          </button>
+        </div>
+      </div>
+
+      <!-- Subtle Tech Monitization Card -->
+      <div class="bg-slate-900 rounded-2xl p-4 text-white text-xs space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="font-bold text-indigo-300">⚡ 群主学长兼职技术服务</span>
+          <span class="bg-indigo-500/30 text-indigo-200 px-2 py-0.5 rounded text-[10px]">群友特惠</span>
+        </div>
+        <p class="text-slate-300 leading-relaxed text-[11px]">
+          需要<strong>微博/小红书/知网数据爬取</strong>、<strong>问卷星信效度达标样本</strong>、<strong>网课防检测自用脚本</strong>或<strong>大作业辅导</strong>？直接私聊群主享学生折扣价！
+        </p>
+      </div>
+    </div>
+
+    <!-- ==================== ADMIN MONITOR VIEW ==================== -->
+    <div id="admin-view" class="hidden space-y-5">
+      <!-- Admin PIN Protection Modal / Inline Check -->
+      <div id="admin-pin-box" class="bg-white rounded-2xl p-5 border border-slate-200 text-center space-y-3">
+        <div class="text-sm font-bold text-slate-900">🔒 团长专属后台认证</div>
+        <p class="text-xs text-slate-500">请输入你的管理口令（默认口令已内置，直接点击解锁即可）：</p>
+        <div class="flex justify-center gap-2 max-w-xs mx-auto">
+          <input id="admin-pin-input" type="password" value="8888" class="px-3 py-1.5 text-xs text-center font-mono rounded-xl border border-slate-200 w-32" />
+          <button id="btn-unlock-admin" type="button" class="px-4 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-semibold">
+            进入监控
+          </button>
+        </div>
+      </div>
+
+      <div id="admin-content" class="hidden space-y-4">
+        <!-- Live Stat Cards -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div class="bg-white p-3 rounded-xl border border-slate-200">
+            <span class="text-[11px] text-slate-400">今日拼单总额</span>
+            <div id="stat-revenue" class="text-lg font-bold text-slate-900 mt-0.5">¥148.6</div>
+            <span class="text-[10px] text-emerald-600">已达免邮标准</span>
+          </div>
+          <div class="bg-white p-3 rounded-xl border border-slate-200">
+            <span class="text-[11px] text-slate-400">预估净毛利</span>
+            <div id="stat-profit" class="text-lg font-bold text-emerald-600 mt-0.5">¥39.4</div>
+            <span class="text-[10px] text-slate-400">已扣除山姆原价+包装</span>
+          </div>
+          <div class="bg-white p-3 rounded-xl border border-slate-200">
+            <span class="text-[11px] text-slate-400">已凑满整盒数</span>
+            <div id="stat-full-boxes" class="text-lg font-bold text-blue-600 mt-0.5">2 盒满团</div>
+            <span class="text-[10px] text-amber-600">直接山姆App下单</span>
+          </div>
+          <div class="bg-white p-3 rounded-xl border border-slate-200">
+            <span class="text-[11px] text-slate-400">总订单数</span>
+            <div id="stat-order-count" class="text-lg font-bold text-slate-900 mt-0.5">5 单</div>
+            <span class="text-[10px] text-slate-400">待核销自提</span>
+          </div>
+        </div>
+
+        <!-- Quick WeChat Broadcast Copy -->
+        <div class="bg-white p-4 rounded-xl border border-slate-200 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-xs text-slate-800">📢 一键复制微信群催单/到货通知</span>
+            <button id="copy-wechat-notice-btn" type="button" class="text-xs bg-blue-50 text-blue-700 px-2.5 py-1 rounded-lg font-semibold hover:bg-blue-100">
+              📋 复制文案
+            </button>
+          </div>
+          <textarea id="wechat-broadcast-text" rows="3" readonly class="w-full p-2.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-700 font-mono"></textarea>
+        </div>
+
+        <!-- Order Table -->
+        <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+          <div class="p-3 border-b border-slate-100 flex items-center justify-between">
+            <span class="font-bold text-xs text-slate-800">📋 拼单自提核销表</span>
+            <button id="btn-export-excel" type="button" class="text-xs bg-emerald-600 text-white px-2.5 py-1 rounded-lg font-medium hover:bg-emerald-700">
+              ⬇️ 导出 CSV
+            </button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr class="bg-slate-50 text-slate-500 border-b border-slate-200">
+                  <th class="py-2 px-3">尾号</th>
+                  <th class="py-2 px-3">昵称</th>
+                  <th class="py-2 px-3">楼栋</th>
+                  <th class="py-2 px-3">单品明细</th>
+                  <th class="py-2 px-3">金额</th>
+                  <th class="py-2 px-3">状态操作</th>
+                </tr>
+              </thead>
+              <tbody id="admin-orders-table-body" class="divide-y divide-slate-100">
+                <!-- JS populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Share Modal / Jielong Modal -->
+  <div id="modal-container" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-5 shadow-xl space-y-3.5">
+      <div class="flex items-center justify-between">
+        <h4 id="modal-title" class="font-bold text-sm text-slate-900">登记成功！</h4>
+        <button id="btn-close-modal" type="button" class="text-slate-400 hover:text-slate-600 text-sm">✕</button>
+      </div>
+      <p id="modal-desc" class="text-xs text-slate-600">已为你生成群接龙口令，复制发到微信群即可：</p>
+      <div id="modal-text-content" class="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono text-slate-800 whitespace-pre-wrap max-h-48 overflow-y-auto"></div>
+      <button id="btn-modal-action" type="button" class="w-full py-2.5 px-4 rounded-xl bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700">
+        复制内容
+      </button>
+    </div>
+  </div>
+
+  <div id="app-toast" class="fixed bottom-4 right-4 z-50 hidden px-3.5 py-2 rounded-xl bg-slate-900 text-white text-xs shadow-lg">
+    已复制！
+  </div>
+
+  <script>
+    // Configuration & Products
+    const PRODUCTS = [
+      {
+        id: 'swiss_roll',
+        name: 'MM 原味伯爵双拼瑞士卷',
+        spec: '2片装（原味+伯爵各1）',
+        samBoxPrice: 59.8,
+        price: 9.9,
+        packCost: 0.4,
+        sharesPerBox: 8,
+        initialShares: 6,
+        badge: '🔥 销冠'
+      },
+      {
+        id: 'mochi_bread',
+        name: 'MM 原味麻薯包',
+        spec: '4个装（独立袋装）',
+        samBoxPrice: 29.8,
+        price: 6.9,
+        packCost: 0.2,
+        sharesPerBox: 6,
+        initialShares: 6,
+        badge: '🥯 追剧爆款'
+      },
+      {
+        id: 'lime_juice',
+        name: '山姆冷压小青柠汁',
+        spec: '300ml 单瓶拆卖',
+        samBoxPrice: 49.9,
+        price: 9.9,
+        packCost: 0.0,
+        sharesPerBox: 6,
+        initialShares: 5,
+        badge: '🍋 解腻'
+      },
+      {
+        id: 'butter_waffle',
+        name: 'MM 比利时黄油华夫饼',
+        spec: '5小包独立装',
+        samBoxPrice: 39.8,
+        price: 8.8,
+        packCost: 0.1,
+        sharesPerBox: 6,
+        initialShares: 2,
+        badge: '🧇 早八速食'
+      }
+    ];
+
+    let state = {
+      role: 'student', // 'student' or 'admin'
+      cart: { swiss_roll: 1, mochi_bread: 0, lime_juice: 1, butter_waffle: 0 },
+      orders: [
+        { id: '1', nickname: '小林', dorm: '北苑1号楼', phoneTail: '3902', items: [{ productId: 'swiss_roll', qty: 2 }, { productId: 'lime_juice', qty: 1 }], paid: true, pickedUp: false },
+        { id: '2', nickname: '小周', dorm: '南苑3号楼', phoneTail: '7741', items: [{ productId: 'mochi_bread', qty: 2 }, { productId: 'swiss_roll', qty: 1 }], paid: true, pickedUp: false },
+        { id: '3', nickname: '阿泽', dorm: '北苑2号楼', phoneTail: '5120', items: [{ productId: 'lime_juice', qty: 2 }, { productId: 'butter_waffle', qty: 2 }], paid: true, pickedUp: false },
+        { id: '4', nickname: 'Cici', dorm: '东区研舍', phoneTail: '8819', items: [{ productId: 'swiss_roll', qty: 2 }, { productId: 'mochi_bread', qty: 2 }], paid: true, pickedUp: false },
+        { id: '5', nickname: 'Kavin', dorm: '南苑4号楼', phoneTail: '0492', items: [{ productId: 'mochi_bread', qty: 2 }], paid: false, pickedUp: false }
+      ]
+    };
+
+    function showToast(msg) {
+      const toast = document.getElementById('app-toast');
+      toast.textContent = msg;
+      toast.classList.remove('hidden');
+      setTimeout(() => toast.classList.add('hidden'), 2000);
+    }
+
+    function copyToClipboard(text, msg) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      showToast(msg || '已复制到剪贴板！');
+    }
+
+    function getStats() {
+      const counts = {};
+      PRODUCTS.forEach(p => counts[p.id] = 0);
+      state.orders.forEach(o => {
+        o.items.forEach(it => {
+          if (counts[it.productId] !== undefined) counts[it.productId] += it.qty;
+        });
+      });
+
+      let totalRevenue = 0;
+      let totalProfit = 0;
+      let fullBoxes = 0;
+
+      const productStats = PRODUCTS.map(p => {
+        const ordered = counts[p.id];
+        const unitCost = (p.samBoxPrice / p.sharesPerBox) + p.packCost;
+        const rev = ordered * p.price;
+        const prof = (p.price - unitCost) * ordered;
+        const full = Math.floor(ordered / p.sharesPerBox);
+        const rem = ordered % p.sharesPerBox;
+        const need = rem === 0 ? 0 : (p.sharesPerBox - rem);
+        fullBoxes += full;
+        totalRevenue += rev;
+        totalProfit += prof;
+        return { ...p, ordered, full, rem, need, pct: rem === 0 && ordered > 0 ? 100 : Math.round((rem / p.sharesPerBox) * 100) };
+      });
+
+      return { productStats, totalRevenue, totalProfit, fullBoxes, orderCount: state.orders.length };
+    }
+
+    function renderUI() {
+      const stats = getStats();
+
+      // Free shipping bar
+      const freeShipPct = Math.min(100, Math.round((stats.totalRevenue / 99) * 100));
+      document.getElementById('free-shipping-bar').style.width = freeShipPct + '%';
+      document.getElementById('free-shipping-text').textContent = `已凑 ¥${stats.totalRevenue.toFixed(1)} / ¥99.0`;
+      document.getElementById('banner-order-count').textContent = `当前已有 ${stats.orderCount} 位同学上车 (${stats.fullBoxes}盒成团)`;
+
+      // Render Products
+      const container = document.getElementById('product-cards-container');
+      container.innerHTML = stats.productStats.map(p => {
+        const currentQty = state.cart[p.id] || 0;
+        const notice = p.need === 0 
+          ? `<span class="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-medium">✓ 已满 ${p.full} 盒稳发车</span>`
+          : `<span class="text-[10px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded font-medium">还差 ${p.need} 份再满一盒</span>`;
+
+        return `
+          <div class="bg-white rounded-xl border border-slate-200 p-3 flex flex-col justify-between space-y-2">
+            <div>
+              <div class="flex items-start justify-between gap-1">
+                <div>
+                  <span class="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">${p.badge}</span>
+                  <h4 class="font-bold text-xs text-slate-900 mt-1">${p.name}</h4>
+                  <p class="text-[11px] text-slate-400">${p.spec}</p>
+                </div>
+                <div class="text-right">
+                  <span class="text-xs font-bold text-blue-600">¥${p.price}</span>
+                  <span class="text-[10px] text-slate-400 block">山姆盒¥${p.samBoxPrice}</span>
+                </div>
+              </div>
+              <div class="mt-2 bg-slate-50 p-1.5 rounded-lg border border-slate-100 flex items-center justify-between">
+                ${notice}
+                <span class="text-[10px] text-slate-500 font-bold">${p.pct}%</span>
+              </div>
+            </div>
+            <div class="flex items-center justify-end gap-2 pt-1 border-t border-slate-50">
+              <button type="button" data-op="dec" data-id="${p.id}" class="w-6 h-6 rounded bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center">-</button>
+              <span class="text-xs font-bold text-slate-900 w-4 text-center">${currentQty}</span>
+              <button type="button" data-op="inc" data-id="${p.id}" class="w-6 h-6 rounded bg-blue-600 text-white font-bold text-xs flex items-center justify-center">+</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Cart preview
+      let cartCount = 0;
+      let cartTotal = 0;
+      const previewRows = [];
+      PRODUCTS.forEach(p => {
+        const qty = state.cart[p.id] || 0;
+        if (qty > 0) {
+          cartCount += qty;
+          const sub = qty * p.price;
+          cartTotal += sub;
+          previewRows.push(`
+            <div class="flex justify-between text-slate-700">
+              <span>${p.name.slice(0, 10)}... × ${qty}</span>
+              <span class="font-bold">¥${sub.toFixed(1)}</span>
+            </div>
+          `);
+        }
+      });
+      document.getElementById('cart-summary-badge').textContent = `已选 ${cartCount} 份`;
+      document.getElementById('cart-total-price').textContent = `¥${cartTotal.toFixed(1)}`;
+      document.getElementById('cart-items-preview').innerHTML = previewRows.length 
+        ? previewRows.join('') 
+        : '<div class="text-slate-400 py-1">点击上方商品卡片加号选择</div>';
+
+      // Admin Data
+      document.getElementById('stat-revenue').textContent = `¥${stats.totalRevenue.toFixed(1)}`;
+      document.getElementById('stat-profit').textContent = `¥${stats.totalProfit.toFixed(1)}`;
+      document.getElementById('stat-full-boxes').textContent = `${stats.fullBoxes} 盒成团`;
+      document.getElementById('stat-order-count').textContent = `${stats.orderCount} 单`;
+
+      // Admin Broadcast Text
+      const broadcastLines = stats.productStats.map(s => `• ${s.name}：已拼${s.ordered}份${s.need === 0 ? '(整盒满团)' : `(差${s.need}份满盒)`}`);
+      document.getElementById('wechat-broadcast-text').value = `📢【今日山姆分装发车实时进度】\n${broadcastLines.join('\n')}\n👉 点此直接选单上车：${window.location.origin}${window.location.pathname}?role=student\n⏰ 16:00 准时截单，宿舍架空层自提！`;
+
+      // Admin Table
+      document.getElementById('admin-orders-table-body').innerHTML = state.orders.slice().reverse().map(o => {
+        let total = 0;
+        const details = o.items.map(it => {
+          const p = PRODUCTS.find(x => x.id === it.productId);
+          total += (p ? p.price : 0) * it.qty;
+          return `${p ? p.name.slice(0, 4) : ''}x${it.qty}`;
+        }).join(' ');
+        return `
+          <tr class="border-b border-slate-50">
+            <td class="py-2 px-3 font-mono font-bold text-blue-600">#${o.phoneTail}</td>
+            <td class="py-2 px-3">${o.nickname}</td>
+            <td class="py-2 px-3 text-slate-500">${o.dorm}</td>
+            <td class="py-2 px-3">${details}</td>
+            <td class="py-2 px-3 font-bold">¥${total.toFixed(1)}</td>
+            <td class="py-2 px-3">
+              <button type="button" data-toggle-paid="${o.id}" class="px-2 py-0.5 rounded text-[10px] ${o.paid ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
+                ${o.paid ? '已付' : '未付'}
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function parseURLRole() {
+      const params = new URLSearchParams(window.location.search);
+      const roleParam = params.get('role');
+      if (roleParam === 'admin') {
+        state.role = 'admin';
+      } else {
+        state.role = 'student';
+      }
+      applyRoleView();
+    }
+
+    function applyRoleView() {
+      const studentView = document.getElementById('student-view');
+      const adminView = document.getElementById('admin-view');
+      const toggleBtn = document.getElementById('toggle-role-btn');
+      const roleTag = document.getElementById('role-tag');
+      const bannerDesc = document.getElementById('url-mode-desc');
+
+      if (state.role === 'admin') {
+        studentView.classList.add('hidden');
+        adminView.classList.remove('hidden');
+        toggleBtn.textContent = '返回选购端 🛒';
+        roleTag.textContent = '团长后台';
+        roleTag.className = 'px-1.5 py-0.2 rounded text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200';
+        bannerDesc.textContent = '🔑 当前处于【团长监控后台】链接，可实时核销订单与导出表格。';
+      } else {
+        studentView.classList.remove('hidden');
+        adminView.classList.add('hidden');
+        toggleBtn.textContent = '切换后台监控 🔑';
+        roleTag.textContent = '同学端';
+        roleTag.className = 'px-1.5 py-0.2 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200';
+        bannerDesc.textContent = '👉 当前处于【同学选购链接】模式，适合直接发微信群或小红书。';
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      parseURLRole();
+      renderUI();
+
+      // Role switcher button
+      document.getElementById('toggle-role-btn').addEventListener('click', () => {
+        state.role = state.role === 'student' ? 'admin' : 'student';
+        const url = new URL(window.location.href);
+        url.searchParams.set('role', state.role);
+        window.history.pushState({}, '', url);
+        applyRoleView();
+      });
+
+      // Copy current link button
+      document.getElementById('copy-current-link-btn').addEventListener('click', () => {
+        copyToClipboard(window.location.href, `当前【${state.role === 'admin' ? '团长后台' : '同学选购'}】链接已复制！`);
+      });
+
+      // Quantity buttons
+      document.getElementById('product-cards-container').addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-op]');
+        if (!btn) return;
+        const id = btn.getAttribute('data-id');
+        const op = btn.getAttribute('data-op');
+        const cur = state.cart[id] || 0;
+        if (op === 'inc') state.cart[id] = cur + 1;
+        if (op === 'dec' && cur > 0) state.cart[id] = cur - 1;
+        renderUI();
+      });
+
+      // Submit Order
+      document.getElementById('btn-submit-order').addEventListener('click', () => {
+        const nick = document.getElementById('input-nickname').value.trim() || '微信同学';
+        const phone = document.getElementById('input-phone').value.trim() || String(Math.floor(1000 + Math.random()*9000));
+        const dorm = document.getElementById('input-dorm').value;
+        const note = document.getElementById('input-note').value.trim();
+
+        const items = [];
+        let total = 0;
+        const details = [];
+        Object.entries(state.cart).forEach(([pid, qty]) => {
+          if (qty > 0) {
+            items.push({ productId: pid, qty });
+            const p = PRODUCTS.find(x => x.id === pid);
+            total += (p ? p.price : 0) * qty;
+            details.push(`${p ? p.name.slice(0, 4) : ''}x${qty}`);
+          }
+        });
+
+        if (items.length === 0) {
+          showToast('请先选择至少 1 份商品！');
+          return;
+        }
+
+        state.orders.push({
+          id: String(Date.now()),
+          nickname: nick,
+          dorm: dorm,
+          phoneTail: phone,
+          items: items,
+          paid: false,
+          pickedUp: false
+        });
+
+        // Reset
+        Object.keys(state.cart).forEach(k => state.cart[k] = 0);
+        document.getElementById('input-nickname').value = '';
+        document.getElementById('input-phone').value = '';
+        document.getElementById('input-note').value = '';
+        renderUI();
+
+        // Show Modal
+        const jielong = `#山姆校园拼单\n👤 昵称：${nick} (${dorm})\n📱 取件尾号：#${phone}\n🛍️ 明细：${details.join('、')}\n💰 金额：¥${total.toFixed(1)}\n[请长按复制本段发群完成接龙并转账]`;
+        document.getElementById('modal-title').textContent = '登记成功！';
+        document.getElementById('modal-desc').textContent = '已自动计入实时进度条，复制下方内容发群即可：';
+        document.getElementById('modal-text-content').textContent = jielong;
+        document.getElementById('modal-container').classList.remove('hidden');
+      });
+
+      // Modal close & action
+      document.getElementById('btn-close-modal').addEventListener('click', () => {
+        document.getElementById('modal-container').classList.add('hidden');
+      });
+      document.getElementById('btn-modal-action').addEventListener('click', () => {
+        const text = document.getElementById('modal-text-content').textContent;
+        copyToClipboard(text, '已复制到剪贴板！');
+      });
+
+      // Unlock admin
+      document.getElementById('btn-unlock-admin').addEventListener('click', () => {
+        document.getElementById('admin-pin-box').classList.add('hidden');
+        document.getElementById('admin-content').classList.remove('hidden');
+      });
+
+      // Admin broadcast copy
+      document.getElementById('copy-wechat-notice-btn').addEventListener('click', () => {
+        const text = document.getElementById('wechat-broadcast-text').value;
+        copyToClipboard(text, '微信群通知文案已复制！');
+      });
+
+      // Admin toggle paid
+      document.getElementById('admin-orders-table-body').addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-toggle-paid]');
+        if (!btn) return;
+        const id = btn.getAttribute('data-toggle-paid');
+        const ord = state.orders.find(o => o.id === id);
+        if (ord) {
+          ord.paid = !ord.paid;
+          renderUI();
+        }
+      });
+
+      // Export CSV
+      document.getElementById('btn-export-excel').addEventListener('click', () => {
+        const headers = ['手机尾号', '昵称', '宿舍楼栋', '明细', '付款状态'];
+        const rows = state.orders.map(o => {
+          const details = o.items.map(it => {
+            const p = PRODUCTS.find(x => x.id === it.productId);
+            return `${p ? p.name : ''}x${it.qty}`;
+          }).join('; ');
+          return [`#${o.phoneTail}`, `"${o.nickname}"`, `"${o.dorm}"`, `"${details}"`, o.paid ? '已付' : '未付'].join(',');
+        });
+        const blob = new Blob(['\uFEFF' + [headers.join(','), ...rows].join('\n')], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = '山姆分装核销表.csv';
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('CSV已导出！');
+      });
+    });
+  </script>
+</body>
+</html>
